@@ -1,67 +1,81 @@
 package com.example.restservice.api;
 
-import com.example.restservice.application.dto.RoomDTO;
-import com.example.restservice.application.Controller;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import com.example.restservice.domain.Hotel;
+import com.example.restservice.domain.Room;
+import com.example.restservice.repo.HotelRepo;
+import com.example.restservice.repo.RoomRepo;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api")
 public class ApiController {
 
-    private final Controller controller;
-    public ApiController(Controller controller) {
-        this.controller = controller;
+    @Autowired
+    private HotelRepo hotelRepo;
+
+    @Autowired
+    private RoomRepo roomRepo;
+
+    @GetMapping("/hotels")
+    public List<Hotel> getAllHotels() {
+        return hotelRepo.findAll();
     }
 
-    @GetMapping("/")
-    @ResponseBody
-    public String index() {
-        return "Welcome to the Hotel Management API!";
-    }
-    @GetMapping("/rooms")
-    public ResponseEntity<List<RoomDTO>> getAllRooms() {
-        return new ResponseEntity<>(controller.getAllRooms(), HttpStatus.OK);
-    }
-    @GetMapping("/rooms/{id}")
-    public ResponseEntity<RoomDTO> getRoom(@PathVariable int id) {
-        return new ResponseEntity<>(controller.getRoom(id), HttpStatus.OK);
+    @GetMapping("/hotels/{id}/rooms")
+    public List<Room> getHotelRooms(@PathVariable Long id) {
+        Hotel hotel = hotelRepo.findById(id).orElseThrow(() -> new RuntimeException("Hotel not found"));
+        return hotel.getAllRooms();
     }
 
-    @GetMapping("/hotel")
-    public ResponseEntity<String> getHotelName() {
-        return new ResponseEntity<>(controller.getHotelName(), HttpStatus.OK);
+
+
+    @PostMapping("/hotels/create")
+    public Hotel createHotel(@RequestBody Hotel hotel) {
+        if (hotel.getHotelName() == null || hotel.getHotelName().isEmpty()) {
+            throw new IllegalArgumentException("Hotel name cannot be null or empty");
+        }
+        Hotel savedHotel = hotelRepo.save(hotel);
+        for (Room room : hotel.getAllRooms()) {
+            room.setHotel(savedHotel);
+            roomRepo.save(room);
+        }
+        return savedHotel;
     }
-    @PostMapping("/rooms/{id}/booking")
-    public ResponseEntity<Void> bookRoom(@PathVariable int id, @RequestBody String booker) {
-        controller.setRoomBooker(id, booker);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-    @PostMapping("/hotel")
-    public ResponseEntity<Void> setHotelName(@RequestBody String name) {
-        controller.setHotelName(name);
-        return new ResponseEntity<>(HttpStatus.OK);
-    }
-    @PostMapping("/rooms/booking")
-    public ResponseEntity<Void> bookRooms(@RequestBody BookingRequest request) {
-        try {
-            for (int i = 0; i < request.getNumRooms(); i++) {
-                for (RoomDTO room : controller.getAvailableRooms()) {
-                    controller.setRoomBooker(room.getNumber(), request.getBooker());
+
+    @PutMapping("/hotels/book")
+    public List<Room> bookRooms(@RequestParam String hotelName, @RequestParam String booker, @RequestParam int numberOfRooms) {
+        Hotel hotel = hotelRepo.findByName(hotelName);
+        if (hotel == null) {
+            throw new RuntimeException("Hotel not found for this name: " + hotelName);
+        }
+        List<Room> rooms = hotel.getAllRooms();
+        List<Room> bookedRooms = new ArrayList<>();
+        for (Room room : rooms) {
+            if (!room.isBooked()) {
+                room.setBooker(booker);
+                bookedRooms.add(roomRepo.save(room));
+                if (bookedRooms.size() == numberOfRooms) {
                     break;
                 }
             }
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+        if (bookedRooms.size() < numberOfRooms) {
+            throw new RuntimeException("Not enough available rooms in this hotel");
+        }
+        return bookedRooms;
     }
-    @DeleteMapping("/rooms/{id}/booking")
-    public ResponseEntity<Void> unbookRoom(@PathVariable int id) {
-        controller.setRoomBooker(id, null);
-        return new ResponseEntity<>(HttpStatus.OK);
+
+    @DeleteMapping("/hotels/deleteAll")
+    public void deleteAllHotels() {
+        hotelRepo.deleteAll();
+    }
+
+    @DeleteMapping("/rooms/deleteAll")
+    public void deleteAllRooms() {
+        roomRepo.deleteAll();
     }
 }
