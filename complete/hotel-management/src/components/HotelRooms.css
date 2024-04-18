@@ -1,0 +1,19 @@
+.room-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); /* Adjust this line to make the grid smaller */
+    gap: 1rem;
+    margin: 0 20px; /* Add margin on the sides */
+}
+
+.room-item {
+    border: 1px solid black;
+    padding: 0.25rem; /* Adjust this line to make each room box smaller */
+}
+
+.booked {
+    background-color: red;
+}
+
+.unbooked {
+    background-color: green;
+}

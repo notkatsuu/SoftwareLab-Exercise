@@ -26,10 +26,11 @@ public class Hotel {
 
     public Hotel() throws Exception {
         for (int i = 0; i < NUMBER_OF_ROOMS; i++) {
-            rooms.add(new Room(i));
+            Room room = new Room(i);
+            room.setHotel(this); // Add this line
+            rooms.add(room);
         }
     }
-
 
 
     public void setName(String name) {

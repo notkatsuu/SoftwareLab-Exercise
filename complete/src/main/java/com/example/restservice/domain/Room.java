@@ -18,7 +18,7 @@ public class Room {
     private String booker;
 
     @ManyToOne
-    @JoinColumn(name = "hotel_id")
+    @JoinColumn(name = "hotelId")
     private Hotel hotel;
 
     public Room(int number) throws Exception {

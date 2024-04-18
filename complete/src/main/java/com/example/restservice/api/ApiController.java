@@ -7,7 +7,6 @@ import com.example.restservice.repo.RoomRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -25,12 +24,10 @@ public class ApiController {
         return hotelRepo.findAll();
     }
 
-    @GetMapping("/hotels/{id}/rooms")
-    public List<Room> getHotelRooms(@PathVariable Long id) {
-        Hotel hotel = hotelRepo.findById(id).orElseThrow(() -> new RuntimeException("Hotel not found"));
-        return hotel.getAllRooms();
+    @GetMapping("/hotels/{hotelId}/rooms")
+    public List<Room> getRoomsByHotelId(@PathVariable Long hotelId) {
+        return roomRepo.findByHotelId(hotelId);
     }
-
 
 
     @PostMapping("/hotels/create")
@@ -46,28 +43,36 @@ public class ApiController {
         return savedHotel;
     }
 
-    @PutMapping("/hotels/book")
-    public List<Room> bookRooms(@RequestParam String hotelName, @RequestParam String booker, @RequestParam int numberOfRooms) {
-        Hotel hotel = hotelRepo.findByName(hotelName);
-        if (hotel == null) {
-            throw new RuntimeException("Hotel not found for this name: " + hotelName);
+
+    @PostMapping("/hotels/{hotelId}/rooms/{numOfRooms}/book")
+    public Room bookRoom(@PathVariable int numOfRooms, @RequestBody String booker, @PathVariable String hotelId) {
+        //Book the number of rooms specified by roomNumber, if roomNumber is greater than the number of rooms in the hotel, throw an exception
+
+        Hotel hotel = hotelRepo.findById(Long.parseLong(hotelId)).orElseThrow();
+        List<Room> rooms = roomRepo.findByHotelId(Long.parseLong(hotelId));
+        //count the number of rooms that are not booked and order them by their number
+        List<Room> availableRooms = rooms.stream().filter(room -> !room.isBooked()).sorted((r1, r2) -> r1.getNumber() - r2.getNumber()).toList();
+
+        if (numOfRooms > availableRooms.size()) {
+            throw new IllegalArgumentException("Number of rooms to book is greater than the number of available rooms");
         }
-        List<Room> rooms = hotel.getAllRooms();
-        List<Room> bookedRooms = new ArrayList<>();
-        for (Room room : rooms) {
+        //book the first numOfRooms rooms that are not booked, ordered by num, starting from room 0 and up
+        for (Room room : availableRooms) {
             if (!room.isBooked()) {
                 room.setBooker(booker);
-                bookedRooms.add(roomRepo.save(room));
-                if (bookedRooms.size() == numberOfRooms) {
-                    break;
-                }
+                roomRepo.save(room);
+                numOfRooms--;
+            }
+            if (numOfRooms == 0) {
+                break;
             }
         }
-        if (bookedRooms.size() < numberOfRooms) {
-            throw new RuntimeException("Not enough available rooms in this hotel");
-        }
-        return bookedRooms;
+
+        return null;
+
+
     }
+
 
     @DeleteMapping("/hotels/deleteAll")
     public void deleteAllHotels() {
