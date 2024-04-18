@@ -1,6 +1,6 @@
 # Hotel Management System
 
-This project is a full-stack hotel management system built with Java, Spring Boot, Maven, JavaScript, React, and NPM. It allows users to book rooms, view room details, and manage hotel names. It uses SQL and MySQL for data persistence.
+This project is a full-stack hotel management system built with Java, Spring Boot, Maven, JavaScript, React, NPM and MySQL. It allows users to book rooms, view room details, and manage hotel names. It uses SQL and MySQL for data persistence.
 
 ## Technologies Used
 
