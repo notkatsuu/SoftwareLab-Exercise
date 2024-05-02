@@ -41,7 +41,6 @@ public class ApiController {
             roomRepo.save(room);
         }
         return savedHotel;
-
     }
 
 
